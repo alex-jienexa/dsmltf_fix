@@ -42,6 +42,14 @@ def mean(sample: list[N]) -> float:
     """
     return sum(sample) / len(sample)
 
+def meanOf2(sample_x: list[N], sample_y: list[N]) -> float:
+    """
+    Считает выборочные средние двух выборок, то есть mean(a*b)
+    """
+    if len(sample_x) != len(sample_y):
+        raise ValueError(f"Длины выборок sample_x и sample_y должны быть равны, а не: {len(sample_x)} and {len(sample_y)}")
+    return sum([sample_x[i] * sample_y[i] for i, _ in enumerate(sample_x)]) / len(sample_x)
+
 def mode(sample: list[T]) -> T:
     """
     Самый частовстречающийся элемент в выборке
@@ -144,17 +152,31 @@ def interquartile_range(sample:list[N]) -> float:
     """
     return quantile(sample, 0.75) - quantile(sample, 0.25)
 
-def _covariation(sample_x: list[N], sample_y: list[N]) -> float:
+def covariation(sample_x: list[N], sample_y: list[N]) -> float:
     """
-    НЕИЗВЕСТНАЯ ПРАВИЛЬНАЯ ЛИ РЕАЛИЗАЦИЯ, ИСПОЛЬЗОВАТЬ С ОСТОРОЖНОСТЬЮ!
     Возвращает ковариацию двух выборок - попытка определить изменение двух выборок в том же направлении.
     Является отклонением переменных от своих средих.
     """
-    return (sum([(x - mean(sample_x)) for x in sample_x]) * sum([y - mean(sample_y) for y in sample_y])) / (len(sample_x) + len(sample_y))
+    return meanOf2(sample_x, sample_y) - mean(sample_x) * mean(sample_y)
 
-def _correlation(sample_x: list[N], sample_y: list[N]) -> float:
+def correlation(sample_x: list[N], sample_y: list[N]) -> float:
     """
-    TODO: узнать что это такое и понять правильно ли я написал
-    Смотрите также: _covariation()
+    Считает корреляцию двух выборок - показатель тесноты связи между ними. Такой показатель имеет значения от -1 до 1 и
+    показывает связи между признаками. Анализировать связь можно по шкале Чеддока:
+    * 0.1 < rxy < 0.3: слабая;
+    * 0.3 < rxy < 0.5: умеренная;
+    * 0.5 < rxy < 0.7: заметная;
+    * 0.7 < rxy < 0.9: высокая;
+    * 0.9 < rxy < 1: весьма высокая;
+
+    Также определяется тип связи, прямая (если > 0) и обратная (если <= 0)
     """
-    return _covariation(sample_x, sample_y) / (std_deviation(sample_x) * std_deviation(sample_y))
+    return covariation(sample_x, sample_y) / (std_deviation(sample_x) * std_deviation(sample_y))
+
+def regression_coef(main_list: list[N], sec_list: list[N]) -> float:
+    """
+    Считает коэфициент регрессии первого списка на другой.
+    Смысл такого коэфициента объясняется в следующем: если увеличить значение `sec_list` на 1, то
+    значение `main_list` изменится на `regression_coef()`.
+    """
+    return covariation(main_list, sec_list) / (std_deviation(sec_list) ** 2)
