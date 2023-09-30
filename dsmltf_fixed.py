@@ -23,7 +23,8 @@ T = TypeVar('T')
 N = TypeVar('N', int, float)    
 """ Числовые типы данных - int и float """
 
-def scope(sample: list[T]) -> float:
+
+def scope(sample: list[N]) -> N:
     """
     Считает Размах выборки - разницу между максимальным или минимальным значением выборки.
 
@@ -35,7 +36,7 @@ def scope(sample: list[T]) -> float:
     """
     return max(sample) - min(sample)
 
-def mean(sample: list[T]) -> float:
+def mean(sample: list[N]) -> float:
     """
     Среднее арифметическое чисел
     """
@@ -43,7 +44,7 @@ def mean(sample: list[T]) -> float:
 
 def mode(sample: list[T]) -> T:
     """
-    Самое частовстречающееся число в выборке
+    Самый частовстречающийся элемент в выборке
     Это называется модой выборки. Встретил на одном сайте название "режим образца", который тоже относится к выборке...
     """
     c = Counter(sample)     # словарь по типу (xK, y), где xK - некоторый 
@@ -55,10 +56,12 @@ def mode_list(sample: list[T], items: int = 1) -> list[T]:
     """
     Возвращает список из items самых частовстрещающихся значений в выборке.
     """
+    if (items <= 0):
+        raise ValueError(f"Элемент items должен быть больше 0, не {items}")
     c = Counter(sample)
     return [k[0] for k in c.most_common(items)]
 
-def median(sample: list[T]) -> float:
+def median(sample: list[N]) -> float:
     """
     Поиск медианы выборки. Медианой называют число, которое является некоторой мерединой выборки, т.е. средним значением в выборке.
     """
@@ -94,7 +97,7 @@ def relp_frequency(sample: list[T], item: T) -> float:
     """
     return rel_frequency(sample, item) * 100
 
-def quantile(sample: list[T], part: float) -> float:
+def quantile(sample: list[N], part: float) -> float:
     """
     Возвращает значение, меньше которого part*100% предметов в выборке - квантиль выборки.
     Медиана матрицы является частным случаем квантиля (0.5)
@@ -105,6 +108,18 @@ def quantile(sample: list[T], part: float) -> float:
     else:
         part = round(part)
         return sum(sorted(sample)[part-1:part+1]) / 2
+
+def quantile_item(sample: list[T], part: float) -> T:
+    """
+        Возвращает элемент, который претендует на место квантиля. Если таких элементов два (между ними),
+        то возвращает ближайший к нему по типу округления.
+        Т.е. получился элемент 3,25 -> возврат [3]
+        получился элемент 3,75 -> возврат 4
+
+        See also: quantile(...)
+    """
+    part = part * len(sample)
+    return sorted(sample)[round(part)]
 
 def variance(sample: list[N]) -> float:
     """
@@ -123,7 +138,7 @@ def std_deviation(sample: list[N]) -> float:
     # стандартное отклонение равно корню дисперсии
     return math.sqrt(variance(sample))
 
-def interquartile_range(sample:list[T]) -> float:
+def interquartile_range(sample:list[N]) -> float:
     """
     Рассчитывает интерквартильный размах в выборке. Оно равно разности между 0.25-квантилями и 0.75-квантилями
     """
@@ -137,7 +152,7 @@ def _covariation(sample_x: list[N], sample_y: list[N]) -> float:
     """
     return (sum([(x - mean(sample_x)) for x in sample_x]) * sum([y - mean(sample_y) for y in sample_y])) / (len(sample_x) + len(sample_y))
 
-def correlation(sample_x: list[N], sample_y: list[N]) -> float:
+def _correlation(sample_x: list[N], sample_y: list[N]) -> float:
     """
     TODO: узнать что это такое и понять правильно ли я написал
     Смотрите также: _covariation()
