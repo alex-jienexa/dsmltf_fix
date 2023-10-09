@@ -50,6 +50,12 @@ def meanOf2(sample_x: list[N], sample_y: list[N]) -> float:
         raise ValueError(f"Длины выборок sample_x и sample_y должны быть равны, а не: {len(sample_x)} and {len(sample_y)}")
     return sum([sample_x[i] * sample_y[i] for i, _ in enumerate(sample_x)]) / len(sample_x)
 
+def mean_vector(sample: list[N]) -> list[N]:
+    """
+    Возвращает вектор отклонений от среднего
+    """
+    return [x_i - mean(sample) for x_i in sample]
+
 def mode(sample: list[T]) -> T:
     """
     Самый частовстречающийся элемент в выборке
@@ -135,7 +141,14 @@ def variance(sample: list[N]) -> float:
     Дисперсия - основной показатель статистики, показывающий разброс элементов в выборке. 
     Отвечает за разнородность результата и вероятность встретить "не среднее" значение в выборке - чем оно выше, тем больше вероятность.
     """
-    return sum([math.pow(x - mean(sample), 2) for x in sample])/len(sample)
+    return sum(math.pow(x - mean(sample), 2) for x in sample) / len(sample)-1
+
+def pvariance(sample: list[N]) -> float:
+    """
+    Считает дисперсию населения выборки.
+    Используется тогда, когда у ваша выборка - это вся некоторая совокупность данных.
+    """
+    return sum(math.pow(x - mean(sample), 2) for x in sample) / len(sample)
 
 def std_deviation(sample: list[N]) -> float:
     """
@@ -146,11 +159,43 @@ def std_deviation(sample: list[N]) -> float:
     # стандартное отклонение равно корню дисперсии
     return math.sqrt(variance(sample))
 
-def interquartile_range(sample:list[N]) -> float:
+def interquantile_range(sample:list[N]) -> float:
     """
-    Рассчитывает интерквартильный размах в выборке. Оно равно разности между 0.25-квантилями и 0.75-квантилями
+    Рассчитывает интерквантильный размах в выборке. Оно равно разности между 0.25-квантилями и 0.75-квантилями
     """
     return quantile(sample, 0.75) - quantile(sample, 0.25)
+
+def inrange_items(sample: list[N]) -> list[N]:
+    """
+    Возвращает список элементов, находящихся в пределах диапазона [Q1 - i_r; Q3 + i_r], где Q1, Q3 равны quantile(sample, 0.25) и quantile(sample, 0.75)
+    соответственно, а i_r равен interquantile_range(sample) 
+    """
+    _ss = sorted(sample)
+    _left = quantile(sample, 0.25) - (interquantile_range(sample) * 1.5)
+    _right = quantile(sample, 0.75) + (interquantile_range(sample) * 1.5)
+    return [item for item in _ss if _left <= item <= _right]
+
+def minor_items(sample: list[N]) -> list[N]:
+    """
+    Возвращает список элементов, имеющих незначительное отклонение. Такие элементы находятся
+    вне диапазона ``[Q1 - i_r*1.5; Q3 + i_r*1.5]``, где Q1, Q3 равны quantile(sample, 0.25) и quantile(sample, 0.75)
+    соответственно, а i_r равен interquantile_range(sample) 
+    """
+    _ss = sorted(sample)
+    _left = quantile(sample, 0.25) - (interquantile_range(sample) * 1.5)
+    _right = quantile(sample, 0.75) + (interquantile_range(sample) * 1.5)
+    return [item for item in _ss if not(_left <= item <= _right)]
+
+def major_items(sample: list[N]) -> list[N]:
+    """
+    Возвращает список элементов, имеющих значительное отклонение. Такие элементы находятся вне
+    диапазонеа ``[Q1 - i_r*3; Q3 + i_r*3]``, где Q1, Q3 равны quantile(sample, 0.25) и quantile(sample, 0.75)
+    соответственно, а i_r равен interquantile_range(sample) 
+    """
+    _ss = sorted(sample)
+    _left = quantile(sample, 0.25) - (interquantile_range(sample) * 3)
+    _right = quantile(sample, 0.75) + (interquantile_range(sample) * 3)
+    return [item for item in _ss if not(_left <= item <= _right)]
 
 def covariation(sample_x: list[N], sample_y: list[N]) -> float:
     """
@@ -180,3 +225,37 @@ def regression_coef(main_list: list[N], sec_list: list[N]) -> float:
     значение `main_list` изменится на `regression_coef()`.
     """
     return covariation(main_list, sec_list) / (std_deviation(sec_list) ** 2)
+    
+def f_norm(x: N, mu: float=0, sigma: float=1):
+    """
+    Функция распределения стандартного нормального отклонения через функцию ошибок (erf)
+    Check: https://ru.wikipedia.org/wiki/%D0%9D%D0%BE%D1%80%D0%BC%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B5_%D1%80%D0%B0%D1%81%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5#%D0%A4%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D1%8F_%D1%80%D0%B0%D1%81%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F
+    
+    Вообще предполагается что mu равно среднему (mean), а signa - стандартному отклонению
+    """
+    return (1 + math.erf((x-mu)/(sigma*math.sqrt(2))))/2
+
+def inv_f_norm(p, mu, s, t=0.001):
+    """
+    Функция обратного нормального распределения.
+    """
+    # сначала перейдем к стандартному нормальному распределению
+    if mu != 0 or s != 1:
+        return mu + s * inv_f_norm(p, 0, 1, t)
+    # ищем в полосе значений -100…100
+    low_x = -100.0
+    low_p = 0
+    hi_x = 100.0    # эти переменные не используются
+    hi_p = 1        #
+    while hi_x - low_x > t:
+        mid_x = (low_x + hi_x)/2
+        mid_p = f_norm(mid_x) # or (low_p + hi_p)/2?
+        if mid_p < p:
+            low_x = mid_x
+            low_p = mid_p
+        elif mid_p > p:
+            hi_x = mid_x
+            hi_p = mid_p
+        else:
+            break
+    return mid_x
